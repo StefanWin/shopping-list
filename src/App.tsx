@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from 'convex/react';
-import { Check, Edit2, Loader2, Trash2, X } from 'lucide-react';
+import { Check, Copy, Edit2, Loader2, Share2, Trash2, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,12 +8,19 @@ import { Input } from '@/components/ui/input';
 import { api } from '../convex/_generated/api';
 import type { Doc, Id } from '../convex/_generated/dataModel';
 import { getDeviceId } from './lib/deviceId';
+import {
+	clearShareToken,
+	getActiveToken,
+	getShareToken,
+	setShareToken,
+} from './lib/shareToken';
 
 type Item = Doc<'shoppingItems'>;
 
 function App() {
 	const deviceId = getDeviceId();
-	const items = useQuery(api.shoppingItems.getItems, { deviceId });
+	const activeToken = getActiveToken(deviceId);
+	const items = useQuery(api.shoppingItems.getItems, { deviceId: activeToken });
 	const addItem = useMutation(api.shoppingItems.addItem);
 	const updateItem = useMutation(api.shoppingItems.updateItem);
 	const toggleItem = useMutation(api.shoppingItems.toggleItem);
@@ -26,13 +33,16 @@ function App() {
 	const [editingId, setEditingId] = useState<Id<'shoppingItems'> | null>(null);
 	const [editName, setEditName] = useState('');
 	const [editQuantity, setEditQuantity] = useState('');
+	const [showShareModal, setShowShareModal] = useState(false);
+	const [shareTokenInput, setShareTokenInput] = useState('');
+	const [copySuccess, setCopySuccess] = useState(false);
 
 	const handleAddItem = async (e: React.FormEvent) => {
 		e.preventDefault();
 		if (!newItemName.trim()) return;
 
 		await addItem({
-			deviceId,
+			deviceId: activeToken,
 			name: newItemName.trim(),
 			quantity: parseInt(newItemQuantity) || 1,
 		});
@@ -65,14 +75,51 @@ function App() {
 		cancelEdit();
 	};
 
+	const handleCopyToken = async () => {
+		await navigator.clipboard.writeText(activeToken);
+		setCopySuccess(true);
+		setTimeout(() => setCopySuccess(false), 2000);
+	};
+
+	const handleJoinList = () => {
+		if (!shareTokenInput.trim()) return;
+		setShareToken(shareTokenInput.trim());
+		setShareTokenInput('');
+		setShowShareModal(false);
+		window.location.reload();
+	};
+
+	const handleUseOwnList = () => {
+		clearShareToken();
+		setShowShareModal(false);
+		window.location.reload();
+	};
+
+	const isUsingSharedList = getShareToken() !== null;
+
 	return (
 		<div className="min-h-screen bg-neutral-950 p-4 flex flex-col">
 			<div className="max-w-2xl mx-auto py-8 flex-1">
 				<Card className="bg-slate-800 border-slate-700">
 					<CardHeader>
-						<CardTitle className="text-3xl font-bold text-center text-slate-100">
-							Shopping List
-						</CardTitle>
+						<div className="flex items-center justify-between">
+							<CardTitle className="text-3xl font-bold text-slate-100">
+								Shopping List
+							</CardTitle>
+							<Button
+								onClick={() => setShowShareModal(true)}
+								className="bg-red-600 hover:bg-red-700 text-white"
+								size="sm"
+							>
+								<Share2 className="h-4 w-4 mr-2" />
+								Share
+							</Button>
+						</div>
+						{isUsingSharedList && (
+							<div className="mt-2 text-sm text-yellow-400 text-center">
+								You are viewing a shared list
+							</div>
+						)}
 					</CardHeader>
 					<CardContent>
 						<form onSubmit={handleAddItem} className="flex gap-2 mb-6">
@@ -196,6 +243,87 @@ function App() {
 						)}
 					</CardContent>
 				</Card>
+
+				{showShareModal && (
+					<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+						<Card className="bg-slate-800 border-slate-700 w-full max-w-md">
+							<CardHeader>
+								<CardTitle className="text-2xl font-bold text-slate-100">
+									Share Your List
+								</CardTitle>
+							</CardHeader>
+							<CardContent className="space-y-4">
+								<div>
+									<h3 className="text-sm font-medium text-slate-300 mb-2">
+										Share this list with others
+									</h3>
+									<p className="text-xs text-slate-400 mb-3">
+										Anyone with this token can view and edit your shopping list.
+									</p>
+									<div className="flex gap-2">
+										<Input
+											value={activeToken}
+											readOnly
+											className="flex-1 bg-slate-700 border-slate-600 text-slate-100 font-mono text-sm"
+										/>
+										<Button
+											onClick={handleCopyToken}
+											className="bg-red-600 hover:bg-red-700 text-white"
+										>
+											<Copy className="h-4 w-4 mr-2" />
+											{copySuccess ? 'Copied!' : 'Copy'}
+										</Button>
+									</div>
+								</div>
+
+								<div className="border-t border-slate-700 pt-4">
+									<h3 className="text-sm font-medium text-slate-300 mb-2">
+										Join someone else's list
+									</h3>
+									<p className="text-xs text-slate-400 mb-3">
+										Enter a share token to view and edit someone else's list.
+									</p>
+									<div className="flex gap-2">
+										<Input
+											placeholder="Enter share token"
+											value={shareTokenInput}
+											onChange={(e) => setShareTokenInput(e.target.value)}
+											className="flex-1 bg-slate-700 border-slate-600 text-slate-100"
+										/>
+										<Button
+											onClick={handleJoinList}
+											className="bg-red-600 hover:bg-red-700 text-white"
+										>
+											Join
+										</Button>
+									</div>
+								</div>
+
+								{isUsingSharedList && (
+									<div className="border-t border-slate-700 pt-4">
+										<Button
+											onClick={handleUseOwnList}
+											variant="outline"
+											className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+										>
+											Return to Your Own List
+										</Button>
+									</div>
+								)}
+
+								<div className="flex justify-end pt-2">
+									<Button
+										onClick={() => setShowShareModal(false)}
+										variant="ghost"
+										className="text-slate-400 hover:text-slate-300 hover:bg-slate-700"
+									>
+										Close
+									</Button>
+								</div>
+							</CardContent>
+						</Card>
+					</div>
+				)}
 			</div>
 
 			<footer className="text-center py-4 text-slate-400 text-sm space-y-2">
