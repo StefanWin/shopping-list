@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../convex/_generated/api';
-import { Id } from '../convex/_generated/dataModel';
+import { Doc, Id } from '../convex/_generated/dataModel';
 import { getDeviceId } from './lib/deviceId';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Trash2, Edit2, Check, X, Loader2 } from 'lucide-react';
+
+type Item = Doc<'shoppingItems'>;
 
 function App() {
   const deviceId = getDeviceId();
@@ -39,7 +41,7 @@ function App() {
     setNewItemQuantity('1');
   };
 
-  const startEdit = (item: typeof items[0]) => {
+  const startEdit = (item: Item) => {
     setEditingId(item._id);
     setEditName(item.name);
     setEditQuantity(item.quantity.toString());
