@@ -208,6 +208,15 @@ function App() {
 						className="text-red-400 hover:text-red-300 underline"
 					>
 						swinte.dev
+					</a>{' '}
+					·{' '}
+					<a
+						href="https://github.com/StefanWin/shopping-list"
+						target="_blank"
+						rel="noopener noreferrer"
+						className="text-red-400 hover:text-red-300 underline"
+					>
+						GitHub
 					</a>
 				</div>
 				<div className="text-xs text-slate-500">
