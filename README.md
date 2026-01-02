@@ -9,6 +9,9 @@ A simple shopping list web application built with React, TypeScript, and Convex.
 - Edit item names and quantities
 - Delete items
 - Private per-browser storage (each browser has its own list)
+- **Share your list** with others via URL or token
+- Real-time collaboration - all users with the share token can view and edit the same list
+- Switch between your personal list and shared lists
 
 ## Tech Stack
 
@@ -63,3 +66,25 @@ pnpm build
 ## How It Works
 
 The app uses `localStorage` to generate a unique device ID for each browser. All shopping list items are associated with this device ID, so each browser maintains its own separate list while data is stored in Convex.
+
+### Sharing Lists
+
+You can share your shopping list with others in two ways:
+
+1. **Share via URL** (recommended):
+   - Click the "Share" button
+   - Copy the generated URL
+   - Send it to anyone you want to share with
+   - When they open the link, they'll automatically join your list
+
+2. **Share via Token**:
+   - Click the "Share" button
+   - Copy your unique token
+   - Share the token with others
+   - They can paste it in the "Join someone else's list" section
+
+Anyone with your share token or URL can view and edit your list in real-time. You can return to your personal list at any time by clicking "Return to Your Own List" in the share modal.
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details

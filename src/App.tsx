@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from 'convex/react';
 import { Check, Copy, Edit2, Loader2, Share2, Trash2, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -36,6 +36,18 @@ function App() {
 	const [showShareModal, setShowShareModal] = useState(false);
 	const [shareTokenInput, setShareTokenInput] = useState('');
 	const [copySuccess, setCopySuccess] = useState(false);
+	const [copyUrlSuccess, setCopyUrlSuccess] = useState(false);
+
+	// Handle share token from URL parameter
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.search);
+		const shareToken = params.get('share');
+		if (shareToken) {
+			setShareToken(shareToken);
+			// Clean up URL without the share parameter
+			window.history.replaceState({}, '', window.location.pathname);
+		}
+	}, []);
 
 	const handleAddItem = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -79,6 +91,13 @@ function App() {
 		await navigator.clipboard.writeText(activeToken);
 		setCopySuccess(true);
 		setTimeout(() => setCopySuccess(false), 2000);
+	};
+
+	const handleCopyUrl = async () => {
+		const shareUrl = `${window.location.origin}${window.location.pathname}?share=${activeToken}`;
+		await navigator.clipboard.writeText(shareUrl);
+		setCopyUrlSuccess(true);
+		setTimeout(() => setCopyUrlSuccess(false), 2000);
 	};
 
 	const handleJoinList = () => {
@@ -255,10 +274,33 @@ function App() {
 							<CardContent className="space-y-4">
 								<div>
 									<h3 className="text-sm font-medium text-slate-300 mb-2">
-										Share this list with others
+										Share via URL
 									</h3>
 									<p className="text-xs text-slate-400 mb-3">
-										Anyone with this token can view and edit your shopping list.
+										Copy and share this link. Anyone who opens it can view and edit your list.
+									</p>
+									<div className="flex gap-2 mb-4">
+										<Input
+											value={`${window.location.origin}${window.location.pathname}?share=${activeToken}`}
+											readOnly
+											className="flex-1 bg-slate-700 border-slate-600 text-slate-100 text-xs"
+										/>
+										<Button
+											onClick={handleCopyUrl}
+											className="bg-red-600 hover:bg-red-700 text-white"
+										>
+											<Copy className="h-4 w-4 mr-2" />
+											{copyUrlSuccess ? 'Copied!' : 'Copy'}
+										</Button>
+									</div>
+								</div>
+
+								<div className="border-t border-slate-700 pt-4">
+									<h3 className="text-sm font-medium text-slate-300 mb-2">
+										Share via Token
+									</h3>
+									<p className="text-xs text-slate-400 mb-3">
+										Copy this token and share it manually. Others can paste it below.
 									</p>
 									<div className="flex gap-2">
 										<Input
