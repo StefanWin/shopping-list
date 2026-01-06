@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from 'convex/react';
-import { Check, Copy, Edit2, Loader2, Share2, Trash2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Check, Copy, Edit2, Loader2, Share2, Trash2, X, CheckCheck } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,6 +16,7 @@ import {
 } from './lib/shareToken';
 
 type Item = Doc<'shoppingItems'>;
+type SortOption = 'default' | 'unchecked-first' | 'alphabetical';
 
 function App() {
 	const deviceId = getDeviceId();
@@ -25,6 +26,7 @@ function App() {
 	const updateItem = useMutation(api.shoppingItems.updateItem);
 	const toggleItem = useMutation(api.shoppingItems.toggleItem);
 	const deleteItem = useMutation(api.shoppingItems.deleteItem);
+	const deleteCheckedItems = useMutation(api.shoppingItems.deleteCheckedItems);
 
 	const isLoading = items === undefined;
 
@@ -37,6 +39,7 @@ function App() {
 	const [shareTokenInput, setShareTokenInput] = useState('');
 	const [copySuccess, setCopySuccess] = useState(false);
 	const [copyUrlSuccess, setCopyUrlSuccess] = useState(false);
+	const [sortOption, setSortOption] = useState<SortOption>('default');
 
 	// Handle share token from URL parameter
 	useEffect(() => {
@@ -116,6 +119,30 @@ function App() {
 
 	const isUsingSharedList = getShareToken() !== null;
 
+	const sortedItems = useMemo(() => {
+		if (!items) return [];
+
+		const itemsCopy = [...items];
+
+		switch (sortOption) {
+			case 'unchecked-first':
+				return itemsCopy.sort((a, b) => {
+					if (a.checked === b.checked) return 0;
+					return a.checked ? 1 : -1;
+				});
+			case 'alphabetical':
+				return itemsCopy.sort((a, b) => a.name.localeCompare(b.name));
+			default:
+				return itemsCopy;
+		}
+	}, [items, sortOption]);
+
+	const hasCheckedItems = items?.some((item) => item.checked) ?? false;
+
+	const handleClearChecked = async () => {
+		await deleteCheckedItems({ deviceId: activeToken });
+	};
+
 	return (
 		<div className="min-h-screen bg-neutral-950 p-4 flex flex-col">
 			<div className="max-w-2xl mx-auto py-8 flex-1">
@@ -165,13 +192,36 @@ function App() {
 							</Button>
 						</form>
 
+						{!isLoading && items.length > 0 && (
+							<div className="space-y-2 mb-4">
+								<select
+									value={sortOption}
+									onChange={(e) => setSortOption(e.target.value as SortOption)}
+									className="w-full bg-slate-700 border border-slate-600 text-slate-100 rounded-md px-3 py-2 text-sm"
+								>
+									<option value="default">Sort: Default</option>
+									<option value="unchecked-first">Sort: Unchecked First</option>
+									<option value="alphabetical">Sort: A-Z</option>
+								</select>
+									<Button
+										disabled={!hasCheckedItems}
+										onClick={handleClearChecked}
+										variant="outline"
+										className="w-full border-slate-600 text-slate-300 hover:bg-slate-700"
+									>
+										<CheckCheck className="h-4 w-4 mr-2" />
+										Clear Completed
+									</Button>
+							</div>
+						)}
+
 						{isLoading ? (
 							<div className="flex items-center justify-center py-12">
 								<Loader2 className="h-8 w-8 animate-spin text-red-500" />
 							</div>
 						) : (
 							<div className="space-y-2">
-								{items.map((item) => (
+								{sortedItems.map((item) => (
 									<div
 										key={item._id}
 										className="flex items-center gap-3 p-3 bg-slate-700 rounded-lg border border-slate-600 hover:bg-slate-650 transition-colors"

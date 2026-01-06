@@ -59,3 +59,19 @@ export const deleteItem = mutation({
 		await ctx.db.delete(args.id);
 	},
 });
+
+export const deleteCheckedItems = mutation({
+	args: { deviceId: v.string() },
+	handler: async (ctx, args) => {
+		const items = await ctx.db
+			.query('shoppingItems')
+			.withIndex('by_deviceId', (q) => q.eq('deviceId', args.deviceId))
+			.collect();
+
+		const checkedItems = items.filter((item) => item.checked);
+
+		for (const item of checkedItems) {
+			await ctx.db.delete(item._id);
+		}
+	},
+});
